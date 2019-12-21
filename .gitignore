@@ -1,2 +1,2 @@
 .idea
-./pkg/infrastructure/fileStorage
+pkg/infrastructure/fileStorage
