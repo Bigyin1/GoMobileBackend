@@ -1,14 +1,28 @@
 package crypter
 
 // Mapping structure represents relation between user files and saved encrypted file URIs
-type Mapping struct {
-	Mapping map[string]string `json:"mapping"`
+
+type Mapping []StoredFile
+
+type StoredFile struct {
+	fid string
+	URL string `json:"url"`
+	Name string `json:"name"`
+	Error string `json:"error"`
 }
 
-func (m *Mapping) Add(originName, encryptedURI string) {
-	m.Mapping[originName] = encryptedURI
+func (f *StoredFile) GetFid() string {
+	return f.fid
+}
+
+func (m *Mapping) Add(originName, encryptedURL, fid string) {
+	*m = append(*m, StoredFile{fid:fid, URL:encryptedURL, Name:originName})
+}
+
+func (m *Mapping) AddError(originName, err, fid string) {
+	*m = append(*m, StoredFile{fid:fid, Error:err, Name:originName})
 }
 
 func newFilesMapping() Mapping {
-	return Mapping{Mapping: make(map[string]string)}
+	return make([]StoredFile, 0)
 }

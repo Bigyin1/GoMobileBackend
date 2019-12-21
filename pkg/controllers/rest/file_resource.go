@@ -1,19 +1,21 @@
 package rest
 
 import (
+	"bytes"
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/gorilla/mux"
+	"github.com/palantir/stacktrace"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 )
+type ResourceHandler func(w http.ResponseWriter, r *http.Request) error
 
 type filesResource struct {
 	cryptService *crypter.Service
 }
 
-func (fr *filesResource) processMultipart(reader *multipart.Reader) (map[string][]byte, error) {
+func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.InputFiles, error) {
 	files := make(map[string][]byte)
 	for {
 		part, err := reader.NextPart()
@@ -21,58 +23,51 @@ func (fr *filesResource) processMultipart(reader *multipart.Reader) (map[string]
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
 		}
 
-		name := part.FormName()
-		if part.FileName() == "" {
+		name := part.FileName()
+		if name == "" {
 			name = part.FormName()
 		}
-		var buf []byte
-		_, err = io.ReadFull(part, buf)
+		var b []byte
+		buf := bytes.NewBuffer(b)
+		_, err = io.Copy(buf, part)
 		if err != nil {
-			return nil, err
+			return nil, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
 		}
-		log.Printf("Got data with name: %s\n", name)
-		files[name] = buf
+		files[name] = buf.Bytes()
 	}
 	return files, nil
 }
 
-func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) {
-	log.Printf("request: %s %s\n", r.RequestURI, r.Method)
+func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
 	reader, err := r.MultipartReader()
 	if err == http.ErrNotMultipart {
-		log.Printf("Got simple request type: %s", r.Header.Get("Content-Type"))
-		return
+		return stacktrace.NewMessageWithCode(ErrNotMultipart, "accept only multipart/form-data Content-Type")
 	}
 	if err != nil {
-		log.Println(getErrorStr(r, err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to get multipart reader")
 	}
 
-	log.Println("Got multipart request")
 	files, err := fr.processMultipart(reader)
 	if err != nil {
-		log.Printf("Failed request: %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return stacktrace.Propagate(err, "processMultipart failed")
 	}
+
 	mapping := fr.cryptService.EncryptAndSaveFiles(files)
-	writeMappingResponse(mapping, http.StatusOK, w)
+	writeResponse(mapping, http.StatusOK, w)
+	return nil
 }
 
-func (fr *filesResource) Get(w http.ResponseWriter, r *http.Request) {
-	log.Printf("request: %s %s\n", r.RequestURI, r.Method)
-
+func (fr *filesResource) Get(w http.ResponseWriter, r *http.Request) error {
 	fid := mux.Vars(r)["fid"]
 	key := r.FormValue("key")
-	log.Printf("Quering file %s with key %s", fid, key)
-	file, err := fr.cryptService.DecryptFile(fid, key)
-	if err != nil {
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	file, err := fr.cryptService.DecryptFileAndGet(fid, key)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to decrypt file %s with key %s", fid, key)
 	}
 	writeFileResponse(file, w)
+	return nil
 }

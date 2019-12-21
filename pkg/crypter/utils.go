@@ -4,53 +4,50 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"errors"
+	"encoding/base64"
+	"github.com/palantir/stacktrace"
 	"io"
 	mrand "math/rand"
 	"strings"
 	"time"
 )
 
-func encrypt(plaintext []byte, key []byte) ([]byte, error) {
-	c, err := aes.NewCipher(key)
+func encrypt(text []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "problem with enc key")
 	}
-
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
+	b := base64.StdEncoding.EncodeToString(text)
+	ciphertext := make([]byte, aes.BlockSize+len(b))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+	return ciphertext, nil
 }
 
-func decrypt(ciphertext []byte, key []byte) ([]byte, error) {
-	c, err := aes.NewCipher(key)
+func decrypt(text []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, stacktrace.PropagateWithCode(err, ErrWrongKey, "key is too small")
 	}
-
-	gcm, err := cipher.NewGCM(c)
+	if len(text) < aes.BlockSize {
+		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "problem with enc key")
+	}
+	iv := text[:aes.BlockSize]
+	text = text[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(text, text)
+	data, err := base64.StdEncoding.DecodeString(string(text))
 	if err != nil {
-		return nil, err
+		return nil, stacktrace.NewMessageWithCode(ErrWrongKey, "Failed to decrypt file with key: %s", string(key))
 	}
-
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, errors.New("ciphertext too short")
-	}
-
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	return gcm.Open(nil, nonce, ciphertext, nil)
+	return data, nil
 }
 
-func getRandomEncrKey() []byte {
+func GetRandomEncrKey() []byte {
 	mrand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +

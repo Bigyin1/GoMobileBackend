@@ -28,7 +28,7 @@ func InitApp() *App {
 	log.Printf("Current configuration: %s\n", conf.AsString())
 
 	fileRepo := infrastructure.NewInFsFileStorage(conf.StoragePath)
-	cryptService := crypter.NewCrypterService(fileRepo, conf.FileURIPrefix)
+	cryptService := crypter.NewCrypterService(fileRepo, conf.FileURIPrefix, crypter.GetRandomEncrKey)
 	restRouter := rest.BuildRestApiRouter(cryptService)
 	restServer := &http.Server{
 		Handler:      restRouter,

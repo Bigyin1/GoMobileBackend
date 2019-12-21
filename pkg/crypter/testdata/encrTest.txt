@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/palantir/stacktrace"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -31,6 +32,7 @@ func (s *InFsFileStorage) FindFileByID(fid string) ([]byte, error) {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}
 	b, err := ioutil.ReadAll(file)
+	log.Println("red file len", len(b))
 	if err != nil {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}
