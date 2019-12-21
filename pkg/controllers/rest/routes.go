@@ -5,10 +5,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func BuildRestApiRouter(cryptService *crypter.Service) *mux.Router {
+func BuildRestApiRouter(cryptService *crypter.Service, debug bool) *mux.Router {
 	r := mux.NewRouter()
 	fileRes := filesResource{cryptService: cryptService}
-	r.HandleFunc("/file", errorWrapperMiddleware(fileRes.Post, true))
-	r.HandleFunc("/file/{fid}", errorWrapperMiddleware(fileRes.Get, true)).Methods("GET")
+	r.HandleFunc("/file", errorWrapperMiddleware(fileRes.Post, debug))
+	r.HandleFunc("/file/{fid}", errorWrapperMiddleware(fileRes.Get, debug)).Methods("GET")
 	return r
 }

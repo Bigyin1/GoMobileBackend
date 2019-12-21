@@ -29,7 +29,7 @@ func InitApp() *App {
 
 	fileRepo := infrastructure.NewInFsFileStorage(conf.StoragePath)
 	cryptService := crypter.NewCrypterService(fileRepo, conf.FileURIPrefix, crypter.GetRandomEncrKey)
-	restRouter := rest.BuildRestApiRouter(cryptService)
+	restRouter := rest.BuildRestApiRouter(cryptService, conf.Debug)
 	restServer := &http.Server{
 		Handler:      restRouter,
 		Addr:         ":" + strconv.Itoa(conf.Port),

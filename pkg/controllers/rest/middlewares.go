@@ -26,7 +26,6 @@ type respError struct {
 func errorWrapperMiddleware(next ResourceHandler, isDebug bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := next(w, r)
-		log.Println("done")
 		if err == nil {
 			return
 		}
@@ -36,7 +35,7 @@ func errorWrapperMiddleware(next ResourceHandler, isDebug bool) http.HandlerFunc
 			log.Println("request failed with error", stacktrace.RootCause(err).Error())
 		}
 
-		errResp := respError{Error:stacktrace.RootCause(err).Error()}
+		errResp := respError{Error: stacktrace.RootCause(err).Error()}
 
 		switch stacktrace.GetCode(err) {
 		case ErrMultipartProcessing:

@@ -13,6 +13,7 @@ type Config struct {
 	Port          int    `json:"port"`
 	StoragePath   string `json:"storagePath"`
 	FileURIPrefix string `json:"fileUriPrefix"`
+	Debug         bool   `json:"debugMode"`
 }
 
 // AsString represents config as string

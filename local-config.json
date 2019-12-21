@@ -1,5 +1,6 @@
 {
-  "port": 8080,
-  "storagePath": "pkg/infrastructure/fileStorage",
-  "fileUriPrefix": "http://localhost:8080/file/"
+    "port": 8080,
+    "storagePath": "pkg/infrastructure/fileStorage",
+    "fileUriPrefix": "http://localhost:8080/file/",
+    "debugMode": true
 }

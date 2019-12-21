@@ -5,10 +5,10 @@ package crypter
 type Mapping []StoredFile
 
 type StoredFile struct {
-	fid string
-	URL string `json:"url"`
-	Name string `json:"name"`
-	Error string `json:"error"`
+	fid   string
+	URL   string `json:"url,omitempty"`
+	Name  string `json:"name"`
+	Error string `json:"error,omitempty"`
 }
 
 func (f *StoredFile) GetFid() string {
@@ -16,11 +16,11 @@ func (f *StoredFile) GetFid() string {
 }
 
 func (m *Mapping) Add(originName, encryptedURL, fid string) {
-	*m = append(*m, StoredFile{fid:fid, URL:encryptedURL, Name:originName})
+	*m = append(*m, StoredFile{fid: fid, URL: encryptedURL, Name: originName})
 }
 
 func (m *Mapping) AddError(originName, err, fid string) {
-	*m = append(*m, StoredFile{fid:fid, Error:err, Name:originName})
+	*m = append(*m, StoredFile{fid: fid, Error: err, Name: originName})
 }
 
 func newFilesMapping() Mapping {
