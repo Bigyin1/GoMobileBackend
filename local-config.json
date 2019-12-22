@@ -4,5 +4,7 @@
     "fileUriPrefix": "http://localhost:8081/file/",
     "debugMode": true,
     "gmailTokenPath": "pkg/controllers/mail/token/token.json",
-    "gmailCredsPath": "pkg/controllers/mail/token/credentials.json"
+    "gmailCredsPath": "pkg/controllers/mail/token/credentials.json",
+    "gmailAddr": "gomobile.test.task@gmail.com",
+    "uploadSubject": "upload"
 }

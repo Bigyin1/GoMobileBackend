@@ -39,7 +39,7 @@ func writeFileResponse(file []byte, w http.ResponseWriter) {
 
 	FileSize := strconv.Itoa(len(file))
 
-	//w.Header().Set("Content-Disposition", "attachment; filename="+Filename)
+	//w.Header().Set("Content-Disposition", "attachment; filename="+Filename) TODO: store real file name somewhere
 	w.Header().Set("Content-Type", FileContentType)
 	w.Header().Set("Content-Length", FileSize)
 

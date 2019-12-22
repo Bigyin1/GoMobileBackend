@@ -15,6 +15,13 @@ func (f *StoredFile) GetFid() string {
 	return f.fid
 }
 
+func (f *StoredFile) GetUrlOrErr() string {
+	if f.URL != "" {
+		return f.URL
+	}
+	return f.Error
+}
+
 func (m *Mapping) Add(originName, encryptedURL, fid string) {
 	*m = append(*m, StoredFile{fid: fid, URL: encryptedURL, Name: originName})
 }

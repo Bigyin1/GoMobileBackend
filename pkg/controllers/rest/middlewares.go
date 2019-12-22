@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
 	"github.com/palantir/stacktrace"
@@ -25,6 +26,12 @@ type respError struct {
 
 func errorWrapperMiddleware(next ResourceHandler, isDebug bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered in f", r)
+			}
+		}()
 
 		if origin := r.Header.Get("Origin"); origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)

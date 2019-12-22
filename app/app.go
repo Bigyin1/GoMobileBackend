@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/Bigyin1/GoMobileBackend/config"
+	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/mail"
 	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/rest"
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
@@ -13,9 +14,11 @@ import (
 
 type App struct {
 	restServer *http.Server
+	gmailController *mail.GmailController
 }
 
 func (app *App) StartApp() {
+	go app.gmailController.StartPolling()
 	err := app.restServer.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Cann't start serving rest, check port num %s", app.restServer.Addr)
@@ -36,5 +39,11 @@ func InitApp() *App {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	return &App{restServer: restServer}
+	gmailCtrl := mail.NewGmailController(conf.GmailTokenPath,
+		conf.GmailCredsPath,
+		conf.UploadSubject,
+		conf.GmailAddr,
+		cryptService)
+
+	return &App{restServer: restServer, gmailController:gmailCtrl}
 }

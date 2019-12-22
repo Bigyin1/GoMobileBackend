@@ -14,6 +14,10 @@ type Config struct {
 	StoragePath   string `json:"storagePath"`
 	FileURIPrefix string `json:"fileUriPrefix"`
 	Debug         bool   `json:"debugMode"`
+	GmailTokenPath string `json:"gmailTokenPath"`
+	GmailCredsPath string `json:"gmailCredsPath"`
+	GmailAddr string `json:"gmailAddr"`
+	UploadSubject string `json:"uploadSubject"`
 }
 
 // AsString represents config as string
