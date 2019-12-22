@@ -61,7 +61,7 @@ func errorWrapperMiddleware(next ResourceHandler, isDebug bool) http.HandlerFunc
 		case crypter.ErrWrongKey:
 			writeResponse(errResp, http.StatusBadRequest, w)
 		case infrastructure.ErrFileNotFound:
-			writeResponse(errResp, http.StatusBadRequest, w)
+			writeResponse(errResp, http.StatusNotFound, w)
 		case infrastructure.ErrUnexpected:
 			writeResponse(errResp, http.StatusInternalServerError, w)
 		}

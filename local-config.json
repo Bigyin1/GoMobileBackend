@@ -2,5 +2,7 @@
     "port": 8081,
     "storagePath": "pkg/infrastructure/fileStorage",
     "fileUriPrefix": "http://localhost:8081/file/",
-    "debugMode": true
+    "debugMode": true,
+    "gmailTokenPath": "pkg/controllers/mail/token/token.json",
+    "gmailCredsPath": "pkg/controllers/mail/token/credentials.json"
 }
