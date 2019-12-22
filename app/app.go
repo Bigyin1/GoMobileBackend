@@ -43,6 +43,8 @@ func InitApp() *App {
 		conf.GmailCredsPath,
 		conf.UploadSubject,
 		conf.GmailAddr,
+		conf.HistoryIdPath,
+		conf.PollingPeriod,
 		cryptService)
 
 	return &App{restServer: restServer, gmailController:gmailCtrl}

@@ -6,5 +6,7 @@
     "gmailTokenPath": "pkg/controllers/mail/token/token.json",
     "gmailCredsPath": "pkg/controllers/mail/token/credentials.json",
     "gmailAddr": "gomobile.test.task@gmail.com",
-    "uploadSubject": "upload"
+    "uploadSubject": "upload",
+    "historyIdPath": "pkg/controllers/mail/historyId.txt",
+    "pollingPeriodSeconds": 3
 }

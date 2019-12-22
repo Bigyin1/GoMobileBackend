@@ -37,12 +37,12 @@ func (s *Service) encryptAndSaveFile(fileData []byte, fileName string, mapping *
 	fid := uuid.NewV4().String()
 	encryptedFileData, err := encrypt(fileData, key)
 	if err != nil {
-		mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
+		mapping.AddError(fileName, "Error while encrypting file", fid)
 		return
 	}
 	err = s.fileRepository.StoreFileByID(fid, encryptedFileData)
 	if err != nil {
-		mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
+		mapping.AddError(fileName, "Error while storing file", fid)
 		return
 	}
 	mapping.Add(fileName, s.combineFileURL(fid, string(key)), fid)

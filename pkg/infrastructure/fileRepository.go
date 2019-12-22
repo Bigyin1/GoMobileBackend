@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/palantir/stacktrace"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -18,6 +19,10 @@ type InFsFileStorage struct {
 }
 
 func NewInFsFileStorage(storagePath string) *InFsFileStorage {
+	err := createFileStorageDirectory(storagePath)
+	if err != nil {
+		log.Fatalln("Failed to create storage path", err)
+	}
 	return &InFsFileStorage{storagePath: storagePath}
 }
 
@@ -26,10 +31,10 @@ func (s *InFsFileStorage) FindFileByID(fid string) ([]byte, error) {
 	if os.IsNotExist(err) {
 		return nil, stacktrace.NewMessageWithCode(ErrFileNotFound, fmt.Sprintf("File with id: %s not exists", fid))
 	}
-	defer file.Close()
 	if err != nil {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}
+	defer file.Close()
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")

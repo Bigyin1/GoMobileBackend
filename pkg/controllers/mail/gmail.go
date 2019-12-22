@@ -10,6 +10,7 @@ import (
 	"google.golang.org/api/option"
 	"io/ioutil"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type GmailController struct {
 	gmailService *gmail.Service
 	cryptService *crypter.Service
 	historyID    uint64
+	historyIdPath string
 	pollingPeriod int
 	uploadSubject string
 	historyRequest *gmail.UsersHistoryListCall
@@ -27,13 +29,18 @@ func (gc *GmailController) sendOutputMapping(output crypter.Mapping, to string) 
 	_, err := gc.gmailService.Users.Messages.Send("me",
 		getOutputMessage(output, to, gc.gmailAddr, "Mapping")).Do()
 	if err != nil {
-		log.Println("error during email send:", err.Error())
+		log.Println("error during email send:", err)
 		return
 	}
 	log.Println("Successfully sent mapping to", to)
 }
 
 func (gc *GmailController) updateHistoryID(newHistoryID uint64) {
+	data := []byte(strconv.FormatUint(newHistoryID, 10))
+	err := ioutil.WriteFile(gc.historyIdPath, data, 0444)
+	if err != nil {
+		log.Println("Failed to save new history id to file", err) //TODO think what to do?
+	}
 	gc.historyID = newHistoryID
 }
 
@@ -71,7 +78,7 @@ func (gc *GmailController) processMessage(message *gmail.Message) {
 		if part.Filename != "" {
 			fileData, err := gc.getFilePartData(part, message.Id)
 			if err != nil {
-				log.Printf("Failed to get file %s %s", part.Filename, err.Error())
+				log.Printf("Failed to get file %s %s", part.Filename, err)
 				continue
 			}
 			if len(fileData) == 0 {
@@ -93,9 +100,10 @@ func (gc *GmailController) processHistory(history *gmail.ListHistoryResponse) ui
 			lastHistoryId = h.Id
 		}
 		for _, m := range h.MessagesAdded {
+			log.Println("Start getting new email message")
 			m, err := gc.gmailService.Users.Messages.Get("me", m.Message.Id).Do()
 			if err != nil {
-				log.Println("Failed to get message", err.Error())
+				log.Println("Failed to get message", err)
 				continue
 			}
 			log.Println("Got new email message:", logMessage(m))
@@ -109,19 +117,22 @@ func (gc *GmailController) processHistory(history *gmail.ListHistoryResponse) ui
 }
 
 func (gc *GmailController) StartPolling() {
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(time.Duration(gc.pollingPeriod) * time.Second)
 	for range ticker.C {
 		history, err := gc.getHistory()
 		if err != nil {
-			log.Println("get history request failed", err.Error())
+			log.Println("get history request failed", err)
 			continue
 		}
 		newHistoryId := gc.processHistory(history)
-		gc.updateHistoryID(newHistoryId)
+		if newHistoryId != gc.historyID {
+			gc.updateHistoryID(newHistoryId)
+		}
 	}
 }
 
-func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr string, crServ *crypter.Service) *GmailController {
+func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyIdPath string, pollPeriod int,
+	crServ *crypter.Service) *GmailController {
 	b, err := ioutil.ReadFile(credsPath)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -132,11 +143,15 @@ func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr string, c
 	}
 	token, err := tokenFromFile(tokenPath)
 	if err != nil {
-		log.Fatalln("Failed to read gmail token", err.Error())
+		log.Fatalln("Failed to read gmail token", err)
 	}
 	gmailService, err := gmail.NewService(context.TODO(), option.WithTokenSource(config.TokenSource(context.TODO(), token)))
 	if err != nil {
 		log.Fatalln("Failed to init gmail service", err)
+	}
+	historyId, err := getInitialHistoryId(historyIdPath)
+	if err != nil {
+		log.Fatalln("Failed to get initial history id", err)
 	}
 	historyReq := gmailService.Users.History.List("me").LabelId("INBOX").HistoryTypes("messageAdded")
 	return &GmailController{gmailService: gmailService,
@@ -144,5 +159,8 @@ func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr string, c
 		uploadSubject:uploadSubject,
 		gmailAddr:gmailAddr,
 		historyRequest:historyReq,
-		historyID:1928}
+		historyID:historyId,
+		historyIdPath:historyIdPath,
+		pollingPeriod:pollPeriod,
+	}
 }

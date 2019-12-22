@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
+	"github.com/palantir/stacktrace"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/gmail/v1"
+	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 func tokenFromFile(file string) (*oauth2.Token, error) {
@@ -45,6 +48,18 @@ func getMessageHeader(m *gmail.Message, header string) string {
 		}
 	}
 	return ""
+}
+
+func getInitialHistoryId(path string) (uint64, error) {
+	idstr, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "Failed to read history id file")
+	}
+	id, err := strconv.ParseUint(string(idstr), 10, 64)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "Wrong data in history id file")
+	}
+	return id, nil
 }
 
 func isUploadSubject(m *gmail.Message, s string) bool {
