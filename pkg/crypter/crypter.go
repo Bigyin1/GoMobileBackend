@@ -1,23 +1,25 @@
 package crypter
 
 import (
-	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
-	"github.com/palantir/stacktrace"
-	"github.com/satori/go.uuid"
 	"net/url"
 	"path"
+	"sync"
+
+	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
+	"github.com/palantir/stacktrace"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Service struct {
 	fileRepository infrastructure.FileRepository
 	fileUriPrefix  string
-	keyGenerator func() []byte
+	keyGenerator   func() []byte
 }
 
 type InputFiles map[string][]byte
 
 func NewCrypterService(fileRepository infrastructure.FileRepository, urlPrefix string, keyGen func() []byte) *Service {
-	return &Service{fileRepository: fileRepository, fileUriPrefix: urlPrefix, keyGenerator:keyGen}
+	return &Service{fileRepository: fileRepository, fileUriPrefix: urlPrefix, keyGenerator: keyGen}
 }
 
 func (s *Service) combineFileURL(uuid, key string) string {
@@ -29,27 +31,31 @@ func (s *Service) combineFileURL(uuid, key string) string {
 	return u.String()
 }
 
-func (s *Service) encryptAndSaveFile(data []byte, key []byte, fid string) {
-
+func (s *Service) encryptAndSaveFile(fileData []byte, fileName string, mapping *Mapping, wg *sync.WaitGroup) {
+	defer wg.Done()
+	key := s.keyGenerator()
+	fid := uuid.NewV4().String()
+	encryptedFileData, err := encrypt(fileData, key)
+	if err != nil {
+		mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
+		return
+	}
+	err = s.fileRepository.StoreFileByID(fid, encryptedFileData)
+	if err != nil {
+		mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
+		return
+	}
+	mapping.Add(fileName, s.combineFileURL(fid, string(key)), fid)
 }
 
 func (s *Service) EncryptAndSaveFiles(files InputFiles) Mapping {
 	mapping := newFilesMapping()
+	wg := sync.WaitGroup{}
+	wg.Add(len(files))
 	for fileName, fileData := range files {
-		key := s.keyGenerator()
-		fid := uuid.NewV4().String()
-		encryptedFileData, err := encrypt(fileData, key)
-		if err != nil {
-			mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
-			continue
-		}
-		err = s.fileRepository.StoreFileByID(fid, encryptedFileData)
-		if err != nil {
-			mapping.AddError(fileName, stacktrace.RootCause(err).Error(), fid)
-			continue
-		}
-		mapping.Add(fileName, s.combineFileURL(fid, string(key)), fid)
+		go s.encryptAndSaveFile(fileData, fileName, &mapping, &wg)
 	}
+	wg.Wait()
 	return mapping
 }
 

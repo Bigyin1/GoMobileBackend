@@ -8,7 +8,7 @@ import (
 func BuildRestApiRouter(cryptService *crypter.Service, debug bool) *mux.Router {
 	r := mux.NewRouter()
 	fileRes := filesResource{cryptService: cryptService}
-	r.HandleFunc("/file", errorWrapperMiddleware(fileRes.Post, debug))
-	r.HandleFunc("/file/{fid}", errorWrapperMiddleware(fileRes.Get, debug)).Methods("GET")
+	r.HandleFunc("/upload", loggingMiddleware(errorWrapperMiddleware(fileRes.Post, debug))).Methods("POST", "OPTIONS")
+	r.HandleFunc("/file/{fid}", errorWrapperMiddleware(fileRes.Get, debug)).Methods("GET", "OPTIONS")
 	return r
 }

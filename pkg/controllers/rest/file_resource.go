@@ -6,9 +6,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/palantir/stacktrace"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 )
+
 type ResourceHandler func(w http.ResponseWriter, r *http.Request) error
 
 type filesResource struct {
@@ -37,6 +39,7 @@ func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Inp
 			return nil, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
 		}
 		files[name] = buf.Bytes()
+		log.Println(part.FileName())
 	}
 	return files, nil
 }
