@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -8,7 +9,9 @@ import (
 	"github.com/palantir/stacktrace"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/gmail/v1"
+	"html/template"
 	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 )
@@ -24,18 +27,26 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	return tok, err
 }
 
-func outMappingToStr(mapping crypter.Mapping) string {
-	res := ""
-	for _, f := range mapping {
-		res += fmt.Sprintf("%s ---> %s\n", f.Name, f.GetUrlOrErr())
+func renderMappingTmpl(mapping crypter.Mapping, tmplPath string) string {
+	tmpl, err := template.ParseFiles(tmplPath)
+	if err != nil {
+		log.Println(err)
+		return ""
 	}
-	return res
+	var buff bytes.Buffer
+	err = tmpl.Execute(&buff, mapping)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return buff.String()
 }
 
-func getOutputMessage(mapping crypter.Mapping, to, from, subject string) *gmail.Message {
+func renderOutputMessage(mapping crypter.Mapping, to, from, subject string) *gmail.Message {
 	m := gmail.Message{}
-	messageStr := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-		from, to, subject, outMappingToStr(mapping)))
+	messageStr := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html;\r\n\r\n%s",
+		from, to, subject,
+		renderMappingTmpl(mapping, "pkg/controllers/mail/templates/mapping.html"))) // TODO add to config
 	//log.Println(string(messageStr))
 	m.Raw = base64.URLEncoding.EncodeToString(messageStr)
 	return &m

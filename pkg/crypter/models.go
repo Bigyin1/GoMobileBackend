@@ -9,6 +9,7 @@ type StoredFile struct {
 	URL   string `json:"url,omitempty"`
 	Name  string `json:"name"`
 	Error string `json:"error,omitempty"`
+	IsError bool `json:"-"`
 }
 
 func (f *StoredFile) GetFid() string {
@@ -27,7 +28,7 @@ func (m *Mapping) Add(originName, encryptedURL, fid string) {
 }
 
 func (m *Mapping) AddError(originName, err, fid string) {
-	*m = append(*m, StoredFile{fid: fid, Error: err, Name: originName})
+	*m = append(*m, StoredFile{fid: fid, Error: err, Name: originName, IsError:true})
 }
 
 func newFilesMapping() Mapping {

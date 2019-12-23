@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<div class="wrapper">
+    <h2>Urls for uploaded files:</h2>
+    <ul>
+        {{range .}}
+            <li>
+                {{if .IsError}}
+                <div><b>{{ .Name }}</b>: {{ .Error }}</div>
+                {{else}}
+                <div><b>{{ .Name }}</b>: <a href="{{ .URL }}">click to reveal</a></div>
+                {{end}}
+            </li>
+        {{else}}
+            <div>No files provided</div>
+        {{end}}
+    </ul>
+</div>
+</body>
+</html>

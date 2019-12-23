@@ -27,29 +27,12 @@ type GmailController struct {
 
 func (gc *GmailController) sendOutputMapping(output crypter.Mapping, to string) {
 	_, err := gc.gmailService.Users.Messages.Send("me",
-		getOutputMessage(output, to, gc.gmailAddr, "Mapping")).Do()
+		renderOutputMessage(output, to, gc.gmailAddr, "Mapping")).Do()
 	if err != nil {
 		log.Println("error during email send:", err)
 		return
 	}
 	log.Println("Successfully sent mapping to", to)
-}
-
-func (gc *GmailController) updateHistoryID(newHistoryID uint64) {
-	data := []byte(strconv.FormatUint(newHistoryID, 10))
-	err := ioutil.WriteFile(gc.historyIdPath, data, 0444)
-	if err != nil {
-		log.Println("Failed to save new history id to file", err) //TODO think what to do?
-	}
-	gc.historyID = newHistoryID
-}
-
-func (gc *GmailController) getHistory() (*gmail.ListHistoryResponse, error) {
-	h, err := gc.historyRequest.StartHistoryId(gc.historyID).Do()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to get history with id: %d", gc.historyID)
-	}
-	return h, nil
 }
 
 func (gc *GmailController) getFilePartData(part *gmail.MessagePart, mid string) ([]byte, error) {
@@ -85,12 +68,30 @@ func (gc *GmailController) processMessage(message *gmail.Message) {
 				log.Printf("Got file with zero length: %s", part.Filename)
 				continue
 			}
+			log.Println(part.Filename)
 			inputFiles[part.Filename] = fileData
 		}
 	}
 	mapping := gc.cryptService.EncryptAndSaveFiles(inputFiles)
 	sendTo := getMessageHeader(message, "From")
 	go gc.sendOutputMapping(mapping, sendTo)
+}
+
+func (gc *GmailController) updateHistoryID(newHistoryID uint64) {
+	data := []byte(strconv.FormatUint(newHistoryID, 10))
+	err := ioutil.WriteFile(gc.historyIdPath, data, 0444)
+	if err != nil {
+		log.Println("Failed to save new history id to file", err) //TODO think what to do?
+	}
+	gc.historyID = newHistoryID
+}
+
+func (gc *GmailController) getHistory() (*gmail.ListHistoryResponse, error) {
+	h, err := gc.historyRequest.StartHistoryId(gc.historyID).Do()
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get history with id: %d", gc.historyID)
+	}
+	return h, nil
 }
 
 func (gc *GmailController) processHistory(history *gmail.ListHistoryResponse) uint64 {
