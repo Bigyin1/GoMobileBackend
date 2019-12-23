@@ -1,14 +1,14 @@
 package rest
 
 import (
-	"bytes"
-	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
-	"github.com/gorilla/mux"
-	"github.com/palantir/stacktrace"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
+	"github.com/gorilla/mux"
+	"github.com/palantir/stacktrace"
 )
 
 type ResourceHandler func(w http.ResponseWriter, r *http.Request) error
@@ -18,7 +18,7 @@ type filesResource struct {
 }
 
 func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.InputFiles, error) {
-	files := make(map[string][]byte)
+	files := make(crypter.InputFiles)
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
@@ -32,13 +32,7 @@ func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Inp
 		if name == "" {
 			name = part.FormName()
 		}
-		var b []byte
-		buf := bytes.NewBuffer(b)
-		_, err = io.Copy(buf, part)
-		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
-		}
-		files[name] = buf.Bytes()
+		files[name] = part
 		log.Println(part.FileName())
 	}
 	return files, nil
@@ -67,10 +61,10 @@ func (fr *filesResource) Get(w http.ResponseWriter, r *http.Request) error {
 	fid := mux.Vars(r)["fid"]
 	key := r.FormValue("key")
 
-	file, err := fr.cryptService.DecryptFileAndGet(fid, key)
+	err := fr.cryptService.DecryptFileAndGet(fid, key, w)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to decrypt file %s with key %s", fid, key)
 	}
-	writeFileResponse(file, w)
+	//writeFileResponse(file, w)
 	return nil
 }

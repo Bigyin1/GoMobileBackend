@@ -3,48 +3,50 @@ package crypter
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
-	"encoding/base64"
-	"github.com/palantir/stacktrace"
 	"io"
 	mrand "math/rand"
 	"strings"
 	"time"
+
+	"github.com/palantir/stacktrace"
 )
 
-func encrypt(text []byte, key []byte) ([]byte, error) {
+func decrypt(source io.Reader, out io.Writer, key []byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "problem with enc key")
+		panic(err)
 	}
-	b := base64.StdEncoding.EncodeToString(text)
-	ciphertext := make([]byte, aes.BlockSize+len(b))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
+
+	// If the key is unique for each ciphertext, then it's ok to use a zero
+	// IV.
+	var iv [aes.BlockSize]byte
+	stream := cipher.NewOFB(block, iv[:])
+
+	reader := &cipher.StreamReader{S: stream, R: source}
+	// Copy the input to the output stream, decrypting as we go.
+	if _, err := io.Copy(out, reader); err != nil {
+		return stacktrace.Propagate(err, "decrypt err")
 	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-	return ciphertext, nil
+	return nil
 }
 
-func decrypt(text []byte, key []byte) ([]byte, error) {
+func encrypt(source io.Reader, out io.Writer, key []byte) error {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, stacktrace.PropagateWithCode(err, ErrWrongKey, "key is too small")
+		panic(err)
 	}
-	if len(text) < aes.BlockSize {
-		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "problem with enc key")
+
+	// If the key is unique for each ciphertext, then it's ok to use a zero
+	// IV.
+	var iv [aes.BlockSize]byte
+	stream := cipher.NewOFB(block, iv[:])
+
+	writer := &cipher.StreamWriter{S: stream, W: out}
+	// Copy the input to the output buffer, encrypting as we go.
+	if _, err := io.Copy(writer, source); err != nil {
+		return stacktrace.Propagate(err, "encrypt err")
 	}
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
-	cfb.XORKeyStream(text, text)
-	data, err := base64.StdEncoding.DecodeString(string(text))
-	if err != nil {
-		return nil, stacktrace.NewMessageWithCode(ErrWrongKey, "Failed to decrypt file with key: %s", string(key))
-	}
-	return data, nil
+	return nil
 }
 
 func GetRandomEncrKey() []byte {

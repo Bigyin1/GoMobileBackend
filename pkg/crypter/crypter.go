@@ -1,6 +1,7 @@
 package crypter
 
 import (
+	"io"
 	"net/url"
 	"path"
 	"sync"
@@ -16,7 +17,7 @@ type Service struct {
 	keyGenerator   func() []byte
 }
 
-type InputFiles map[string][]byte
+type InputFiles map[string]io.Reader
 
 func NewCrypterService(fileRepository infrastructure.FileRepository, urlPrefix string, keyGen func() []byte) *Service {
 	return &Service{fileRepository: fileRepository, fileUriPrefix: urlPrefix, keyGenerator: keyGen}
@@ -31,18 +32,19 @@ func (s *Service) combineFileURL(uuid, key string) string {
 	return u.String()
 }
 
-func (s *Service) encryptAndSaveFile(fileData []byte, fileName string, mapping *Mapping, wg *sync.WaitGroup) {
+func (s *Service) encryptAndSaveFile(fileReader io.Reader, fileName string, mapping *Mapping, wg *sync.WaitGroup) {
 	defer wg.Done()
 	key := s.keyGenerator()
 	fid := uuid.NewV4().String()
-	encryptedFileData, err := encrypt(fileData, key)
+	fileWriter, err := s.fileRepository.GetFileWriterByID(fid)
 	if err != nil {
-		mapping.AddError(fileName, "Error while encrypting file", fid)
+		mapping.AddError(fileName, "Error while creating file", fid)
 		return
 	}
-	err = s.fileRepository.StoreFileByID(fid, encryptedFileData)
+	defer fileWriter.Close()
+	err = encrypt(fileReader, fileWriter, key)
 	if err != nil {
-		mapping.AddError(fileName, "Error while storing file", fid)
+		mapping.AddError(fileName, "Error while encrypting file", fid)
 		return
 	}
 	mapping.Add(fileName, s.combineFileURL(fid, string(key)), fid)
@@ -59,14 +61,15 @@ func (s *Service) EncryptAndSaveFiles(files InputFiles) Mapping {
 	return mapping
 }
 
-func (s *Service) DecryptFileAndGet(fileId, key string) ([]byte, error) {
-	f, err := s.fileRepository.FindFileByID(fileId)
+func (s *Service) DecryptFileAndGet(fileId, key string, dest io.Writer) error {
+	fileReader, err := s.fileRepository.FindFileReaderByID(fileId)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to find file in repo")
+		return stacktrace.Propagate(err, "failed to find file in repo")
 	}
-	res, err := decrypt(f, []byte(key))
+	defer fileReader.Close()
+	err = decrypt(fileReader, dest, []byte(key))
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to decrypt file")
+		return stacktrace.PropagateWithCode(err, ErrWrongKey, "failed to decrypt file")
 	}
-	return res, nil
+	return nil
 }

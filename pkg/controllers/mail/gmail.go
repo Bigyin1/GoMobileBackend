@@ -3,14 +3,15 @@ package mail
 import (
 	"context"
 	"encoding/base64"
+	"io/ioutil"
+	"log"
+	"time"
+
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/palantir/stacktrace"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
-	"io/ioutil"
-	"log"
-	"time"
 )
 
 type GmailController struct {
@@ -55,7 +56,7 @@ func (gc *GmailController) getFilePartData(part *gmail.MessagePart, mid string) 
 
 func (gc *GmailController) processMessage(message *gmail.Message) {
 	log.Println("Start processing email message:", logMessage(message))
-	inputFiles := make(map[string][]byte)
+	inputFiles := make(crypter.InputFiles)
 	for _, part := range message.Payload.Parts {
 		if part.Filename != "" {
 			fileData, err := gc.getFilePartData(part, message.Id)

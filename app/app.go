@@ -1,24 +1,24 @@
 package app
 
 import (
-	"github.com/Bigyin1/GoMobileBackend/config"
-	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/mail"
-	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/rest"
-	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
-	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/Bigyin1/GoMobileBackend/config"
+	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/rest"
+	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
+	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
 )
 
 type App struct {
-	restServer      *http.Server
-	gmailController *mail.GmailController
+	restServer *http.Server
+	//gmailController *mail.GmailController
 }
 
 func (app *App) StartApp() {
-	go app.gmailController.StartPolling()
+	//go app.gmailController.StartPolling()
 	err := app.restServer.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Cann't start serving rest, check port num %s", app.restServer.Addr)
@@ -39,13 +39,14 @@ func InitApp() *App {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	gmailCtrl := mail.NewGmailController(conf.GmailTokenPath,
-		conf.GmailCredsPath,
-		conf.UploadSubject,
-		conf.GmailAddr,
-		conf.MailTmplPath,
-		conf.PollingPeriod,
-		cryptService)
+	// gmailCtrl := mail.NewGmailController(conf.GmailTokenPath,
+	// 	conf.GmailCredsPath,
+	// 	conf.UploadSubject,
+	// 	conf.GmailAddr,
+	// 	conf.MailTmplPath,
+	// 	conf.PollingPeriod,
+	// 	cryptService)
 
-	return &App{restServer: restServer, gmailController: gmailCtrl}
+	return &App{restServer: restServer} // gmailController: gmailCtrl
+
 }
