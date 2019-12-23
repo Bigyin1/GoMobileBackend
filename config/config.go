@@ -48,9 +48,9 @@ func LoadEnvironment() {
 	cloudMobile, exists := os.LookupEnv("CLOUD_GO_MOBILE")
 	cloud, _ := strconv.ParseBool(cloudMobile)
 
-	if exists && cloud {
+	if exists && cloud { // TODO add cloud config
 
 	} else {
-		ConfPath = "local-config.json"
+		ConfPath = "local-config.json" // local config path
 	}
 }
