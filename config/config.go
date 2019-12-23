@@ -18,7 +18,6 @@ type Config struct {
 	GmailCredsPath string `json:"gmailCredsPath"`
 	GmailAddr      string `json:"gmailAddr"`
 	UploadSubject  string `json:"uploadSubject"`
-	HistoryIdPath  string `json:"historyIdPath"`
 	MailTmplPath   string `json:"mappingTmplPath"`
 	PollingPeriod  int    `json:"pollingPeriodSeconds"`
 }

@@ -10,7 +10,6 @@ import (
 	"google.golang.org/api/option"
 	"io/ioutil"
 	"log"
-	"strconv"
 	"time"
 )
 
@@ -18,7 +17,6 @@ type GmailController struct {
 	gmailService   *gmail.Service
 	cryptService   *crypter.Service
 	historyID      uint64
-	historyIdPath  string
 	pollingPeriod  int
 	uploadSubject  string
 	historyRequest *gmail.UsersHistoryListCall
@@ -79,11 +77,6 @@ func (gc *GmailController) processMessage(message *gmail.Message) {
 }
 
 func (gc *GmailController) updateHistoryID(newHistoryID uint64) {
-	data := []byte(strconv.FormatUint(newHistoryID, 10))
-	err := ioutil.WriteFile(gc.historyIdPath, data, 0444)
-	if err != nil {
-		log.Println("Failed to save new history id to file", err) //TODO think what to do?
-	}
 	gc.historyID = newHistoryID
 }
 
@@ -133,7 +126,7 @@ func (gc *GmailController) StartPolling() {
 	}
 }
 
-func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyIdPath,
+func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr,
 	mailTmplPath string,
 	pollPeriod int,
 	crServ *crypter.Service) *GmailController {
@@ -153,7 +146,7 @@ func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyI
 	if err != nil {
 		log.Fatalln("Failed to init gmail service", err)
 	}
-	historyId, err := getInitialHistoryId(historyIdPath)
+	historyId, err := getInitialHistoryId(gmailService)
 	if err != nil {
 		log.Fatalln("Failed to get initial history id", err)
 	}
@@ -164,7 +157,6 @@ func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyI
 		gmailAddr:      gmailAddr,
 		historyRequest: historyReq,
 		historyID:      historyId,
-		historyIdPath:  historyIdPath,
 		pollingPeriod:  pollPeriod,
 		mailTmplPath:   mailTmplPath,
 	}

@@ -43,7 +43,6 @@ func InitApp() *App {
 		conf.GmailCredsPath,
 		conf.UploadSubject,
 		conf.GmailAddr,
-		conf.HistoryIdPath,
 		conf.MailTmplPath,
 		conf.PollingPeriod,
 		cryptService)

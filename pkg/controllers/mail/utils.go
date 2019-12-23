@@ -10,10 +10,8 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/gmail/v1"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 )
 
 func tokenFromFile(file string) (*oauth2.Token, error) {
@@ -61,16 +59,17 @@ func getMessageHeader(m *gmail.Message, header string) string {
 	return ""
 }
 
-func getInitialHistoryId(path string) (uint64, error) {
-	idstr, err := ioutil.ReadFile(path)
+func getInitialHistoryId(gmailService *gmail.Service) (uint64, error) {
+	m, err := gmailService.Users.Messages.List("me").LabelIds("INBOX").Do() //sync
 	if err != nil {
-		return 0, stacktrace.Propagate(err, "Failed to read history id file")
+		return 0, stacktrace.Propagate(err, "Failed to get messages to sync")
 	}
-	id, err := strconv.ParseUint(string(idstr), 10, 64)
+	lastMessageid := m.Messages[0].Id
+	lm, err := gmailService.Users.Messages.Get("me", lastMessageid).Format("metadata").Do()
 	if err != nil {
-		return 0, stacktrace.Propagate(err, "Wrong data in history id file")
+		return 0, stacktrace.Propagate(err, "Failed to get message to sync")
 	}
-	return id, nil
+	return lm.HistoryId, nil
 }
 
 func isUploadSubject(m *gmail.Message, s string) bool {
