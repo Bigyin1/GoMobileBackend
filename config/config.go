@@ -10,16 +10,17 @@ import (
 var ConfPath string
 
 type Config struct {
-	Port          int    `json:"port"`
-	StoragePath   string `json:"storagePath"`
-	FileURIPrefix string `json:"fileUriPrefix"`
-	Debug         bool   `json:"debugMode"`
+	Port           int    `json:"port"`
+	StoragePath    string `json:"storagePath"`
+	FileURIPrefix  string `json:"fileUriPrefix"`
+	Debug          bool   `json:"debugMode"`
 	GmailTokenPath string `json:"gmailTokenPath"`
 	GmailCredsPath string `json:"gmailCredsPath"`
-	GmailAddr string `json:"gmailAddr"`
-	UploadSubject string `json:"uploadSubject"`
-	HistoryIdPath string `json:"historyIdPath"`
-	PollingPeriod int  `json:"pollingPeriodSeconds"`
+	GmailAddr      string `json:"gmailAddr"`
+	UploadSubject  string `json:"uploadSubject"`
+	HistoryIdPath  string `json:"historyIdPath"`
+	MailTmplPath   string `json:"mappingTmplPath"`
+	PollingPeriod  int    `json:"pollingPeriodSeconds"`
 }
 
 // AsString represents config as string

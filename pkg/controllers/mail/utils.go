@@ -42,11 +42,11 @@ func renderMappingTmpl(mapping crypter.Mapping, tmplPath string) string {
 	return buff.String()
 }
 
-func renderOutputMessage(mapping crypter.Mapping, to, from, subject string) *gmail.Message {
+func renderOutputMessage(mapping crypter.Mapping, tmplPath, to, from, subject string) *gmail.Message {
 	m := gmail.Message{}
 	messageStr := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html;\r\n\r\n%s",
 		from, to, subject,
-		renderMappingTmpl(mapping, "pkg/controllers/mail/templates/mapping.html"))) // TODO add to config
+		renderMappingTmpl(mapping, tmplPath)))
 	//log.Println(string(messageStr))
 	m.Raw = base64.URLEncoding.EncodeToString(messageStr)
 	return &m
@@ -81,11 +81,8 @@ func isUploadSubject(m *gmail.Message, s string) bool {
 	return false
 }
 
-
 func logMessage(m *gmail.Message) string {
 	return fmt.Sprintf("From: %s Subject: %s",
 		getMessageHeader(m, "From"),
 		getMessageHeader(m, "Subject"))
 }
-
-

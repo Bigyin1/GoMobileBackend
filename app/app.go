@@ -13,7 +13,7 @@ import (
 )
 
 type App struct {
-	restServer *http.Server
+	restServer      *http.Server
 	gmailController *mail.GmailController
 }
 
@@ -44,8 +44,9 @@ func InitApp() *App {
 		conf.UploadSubject,
 		conf.GmailAddr,
 		conf.HistoryIdPath,
+		conf.MailTmplPath,
 		conf.PollingPeriod,
 		cryptService)
 
-	return &App{restServer: restServer, gmailController:gmailCtrl}
+	return &App{restServer: restServer, gmailController: gmailCtrl}
 }

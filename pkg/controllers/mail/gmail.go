@@ -15,19 +15,20 @@ import (
 )
 
 type GmailController struct {
-	gmailService *gmail.Service
-	cryptService *crypter.Service
-	historyID    uint64
-	historyIdPath string
-	pollingPeriod int
-	uploadSubject string
+	gmailService   *gmail.Service
+	cryptService   *crypter.Service
+	historyID      uint64
+	historyIdPath  string
+	pollingPeriod  int
+	uploadSubject  string
 	historyRequest *gmail.UsersHistoryListCall
-	gmailAddr string
+	gmailAddr      string
+	mailTmplPath   string
 }
 
 func (gc *GmailController) sendOutputMapping(output crypter.Mapping, to string) {
 	_, err := gc.gmailService.Users.Messages.Send("me",
-		renderOutputMessage(output, to, gc.gmailAddr, "Mapping")).Do()
+		renderOutputMessage(output, gc.mailTmplPath, to, gc.gmailAddr, "Mapping")).Do()
 	if err != nil {
 		log.Println("error during email send:", err)
 		return
@@ -97,7 +98,7 @@ func (gc *GmailController) getHistory() (*gmail.ListHistoryResponse, error) {
 func (gc *GmailController) processHistory(history *gmail.ListHistoryResponse) uint64 {
 	lastHistoryId := gc.historyID
 	for i, h := range history.History {
-		if i == len(history.History) - 1 {
+		if i == len(history.History)-1 {
 			lastHistoryId = h.Id
 		}
 		for _, m := range h.MessagesAdded {
@@ -132,7 +133,9 @@ func (gc *GmailController) StartPolling() {
 	}
 }
 
-func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyIdPath string, pollPeriod int,
+func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyIdPath,
+	mailTmplPath string,
+	pollPeriod int,
 	crServ *crypter.Service) *GmailController {
 	b, err := ioutil.ReadFile(credsPath)
 	if err != nil {
@@ -156,12 +159,13 @@ func NewGmailController(tokenPath, credsPath, uploadSubject, gmailAddr, historyI
 	}
 	historyReq := gmailService.Users.History.List("me").LabelId("INBOX").HistoryTypes("messageAdded")
 	return &GmailController{gmailService: gmailService,
-		cryptService:crServ,
-		uploadSubject:uploadSubject,
-		gmailAddr:gmailAddr,
-		historyRequest:historyReq,
-		historyID:historyId,
-		historyIdPath:historyIdPath,
-		pollingPeriod:pollPeriod,
+		cryptService:   crServ,
+		uploadSubject:  uploadSubject,
+		gmailAddr:      gmailAddr,
+		historyRequest: historyReq,
+		historyID:      historyId,
+		historyIdPath:  historyIdPath,
+		pollingPeriod:  pollPeriod,
+		mailTmplPath:   mailTmplPath,
 	}
 }
