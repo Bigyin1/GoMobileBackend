@@ -48,8 +48,22 @@ func (s *Service) encryptAndSaveFile(fileData []byte, fileName string, mapping *
 	mapping.Add(fileName, s.combineFileURL(fid, string(key)), fid)
 }
 
-func (s *Service) EncryptAndSaveFiles(files InputFiles) Mapping {
-	mapping := newFilesMapping()
+func (s *Service) WaitForAllFilesAndMergeMappings(out <-chan Mapping, num int) Mapping {
+	resultmapping := NewFilesMapping()
+	for i := 0; i < num; i++ {
+		resultmapping.MergeWith(<-out)
+	}
+	return resultmapping
+}
+
+func (s *Service) EncryptAndSaveFilesAsync(files InputFiles, out chan<- Mapping) {
+	go func() {
+		out <- s.EncryptAndSaveFiles(files)
+	}()
+}
+
+func (s *Service) EncryptAndSaveFiles(files InputFiles) Mapping { // TODO change protocol to InputFile
+	mapping := NewFilesMapping()
 	wg := sync.WaitGroup{}
 	wg.Add(len(files))
 	for fileName, fileData := range files {

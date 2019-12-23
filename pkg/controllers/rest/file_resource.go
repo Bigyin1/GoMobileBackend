@@ -2,13 +2,14 @@ package rest
 
 import (
 	"bytes"
-	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
-	"github.com/gorilla/mux"
-	"github.com/palantir/stacktrace"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
+	"github.com/gorilla/mux"
+	"github.com/palantir/stacktrace"
 )
 
 type ResourceHandler func(w http.ResponseWriter, r *http.Request) error
@@ -17,31 +18,43 @@ type filesResource struct {
 	cryptService *crypter.Service
 }
 
-func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.InputFiles, error) {
-	files := make(map[string][]byte)
+func (fr *filesResource) processMultipart(reader *multipart.Reader) (<-chan crypter.Mapping, crypter.Mapping, int) {
+	outChan := make(chan crypter.Mapping)
+	var num int
+
+	unprocessed := crypter.NewFilesMapping()
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
+			log.Println("Failed to read next multipart part", err)
+			continue
+			//return nil, num, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
 		}
-
 		name := part.FileName()
 		if name == "" {
 			name = part.FormName()
 		}
+
 		var b []byte
 		buf := bytes.NewBuffer(b)
 		_, err = io.Copy(buf, part)
 		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
+			unprocessed.AddError(name, "Failed to read", "")
+			log.Println("failed to read file", name)
+			continue
+			//return nil, num, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
 		}
-		files[name] = buf.Bytes()
+		file := make(crypter.InputFiles)
+		file[name] = buf.Bytes()
 		log.Println(part.FileName())
+
+		num++
+		fr.cryptService.EncryptAndSaveFilesAsync(file, outChan)
 	}
-	return files, nil
+	return outChan, unprocessed, num
 }
 
 func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
@@ -53,12 +66,11 @@ func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
 		return stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to get multipart reader")
 	}
 
-	files, err := fr.processMultipart(reader)
-	if err != nil {
-		return stacktrace.Propagate(err, "processMultipart failed")
-	}
+	outChan, unprocessed, num := fr.processMultipart(reader)
+	log.Println(num)
+	mapping := fr.cryptService.WaitForAllFilesAndMergeMappings(outChan, num)
+	mapping.MergeWith(unprocessed)
 
-	mapping := fr.cryptService.EncryptAndSaveFiles(files)
 	writeResponse(mapping, http.StatusOK, w)
 	return nil
 }
