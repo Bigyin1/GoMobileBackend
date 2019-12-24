@@ -26,7 +26,7 @@ func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Map
 			break
 		}
 		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
+			return mapping, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
 		}
 
 		name := part.FileName()

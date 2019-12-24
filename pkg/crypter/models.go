@@ -1,8 +1,13 @@
 package crypter
 
+import "sync"
+
 // Mapping structure represents relation between user files and saved encrypted file URIs
 
-type Mapping []StoredFile
+type Mapping struct {
+	mapping []StoredFile
+	m       *sync.Mutex
+}
 
 type StoredFile struct {
 	fid     string
@@ -24,13 +29,17 @@ func (f *StoredFile) GetUrlOrErr() string {
 }
 
 func (m *Mapping) Add(originName, encryptedURL, fid string) {
-	*m = append(*m, StoredFile{fid: fid, URL: encryptedURL, Name: originName})
+	m.m.Lock()
+	defer m.m.Unlock()
+	m.mapping = append(m.mapping, StoredFile{fid: fid, URL: encryptedURL, Name: originName})
 }
 
 func (m *Mapping) AddError(originName, err, fid string) {
-	*m = append(*m, StoredFile{fid: fid, Error: err, Name: originName, IsError: true})
+	m.m.Lock()
+	defer m.m.Unlock()
+	m.mapping = append(m.mapping, StoredFile{fid: fid, Error: err, Name: originName, IsError: true})
 }
 
 func NewFilesMapping() Mapping {
-	return make([]StoredFile, 0)
+	return Mapping{mapping: make([]StoredFile, 0), m: &sync.Mutex{}}
 }

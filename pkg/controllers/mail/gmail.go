@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"io/ioutil"
@@ -68,8 +69,9 @@ func (gc *GmailController) processMessage(message *gmail.Message) {
 				log.Printf("Got file with zero length: %s", part.Filename)
 				continue
 			}
+			dataReader := bytes.NewReader(fileData)
 			log.Println(part.Filename)
-			inputFiles[part.Filename] = fileData
+			inputFiles[part.Filename] = dataReader
 		}
 	}
 	mapping := gc.cryptService.EncryptAndSaveFiles(inputFiles)

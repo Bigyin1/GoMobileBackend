@@ -65,7 +65,7 @@ func TestCrypterSaveFile(t *testing.T) {
 	}
 
 	mapping := service.EncryptAndSaveFiles(inputFilesMap)
-	for _, storedFile := range mapping {
+	for _, storedFile := range mapping.mapping {
 		fmt.Println(storedFile.Name)
 		inputFilesMap[storedFile.Name].(io.ReadSeeker).Seek(0, 0)
 		expected, err := ioutil.ReadAll(inputFilesMap[storedFile.Name])
