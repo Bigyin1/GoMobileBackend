@@ -5,13 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"log"
+	"os"
+
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/palantir/stacktrace"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/gmail/v1"
-	"html/template"
-	"log"
-	"os"
 )
 
 func tokenFromFile(file string) (*oauth2.Token, error) {
@@ -32,7 +33,7 @@ func renderMappingTmpl(mapping crypter.Mapping, tmplPath string) string {
 		return ""
 	}
 	var buff bytes.Buffer
-	err = tmpl.Execute(&buff, mapping)
+	err = tmpl.Execute(&buff, mapping.GetMapping())
 	if err != nil {
 		log.Println(err)
 		return ""

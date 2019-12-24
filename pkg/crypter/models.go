@@ -4,11 +4,6 @@ import "sync"
 
 // Mapping structure represents relation between user files and saved encrypted file URIs
 
-type Mapping struct {
-	mapping []StoredFile
-	m       *sync.Mutex
-}
-
 type StoredFile struct {
 	fid     string
 	URL     string `json:"url,omitempty"`
@@ -28,6 +23,11 @@ func (f *StoredFile) GetUrlOrErr() string {
 	return f.Error
 }
 
+type Mapping struct {
+	mapping []StoredFile
+	m       *sync.Mutex
+}
+
 func (m *Mapping) Add(originName, encryptedURL, fid string) {
 	m.m.Lock()
 	defer m.m.Unlock()
@@ -38,6 +38,10 @@ func (m *Mapping) AddError(originName, err, fid string) {
 	m.m.Lock()
 	defer m.m.Unlock()
 	m.mapping = append(m.mapping, StoredFile{fid: fid, Error: err, Name: originName, IsError: true})
+}
+
+func (m *Mapping) GetMapping() []StoredFile {
+	return m.mapping
 }
 
 func NewFilesMapping() Mapping {

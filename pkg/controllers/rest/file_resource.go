@@ -53,7 +53,7 @@ func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
 		return stacktrace.Propagate(err, "processMultipart failed")
 	}
 
-	writeResponse(mapping, http.StatusOK, w)
+	writeResponse(mapping.GetMapping(), http.StatusOK, w)
 	return nil
 }
 

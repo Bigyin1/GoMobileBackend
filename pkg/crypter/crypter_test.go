@@ -12,23 +12,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func TestCrypterGetFile(t *testing.T) {
-// 	fileRepo := infrastructure.NewInFsFileStorage("./testdata")
-// 	service := NewCrypterService(fileRepo, "", GetRandomEncrKey)
+func TestCrypterGetFile(t *testing.T) {
+	fileRepo := infrastructure.NewInFsFileStorage("./testdata")
+	service := NewCrypterService(fileRepo, "", GetRandomEncrKey)
 
-// 	testFilesMap := map[string][]string{"./testdata/encrTest.txt": {"encrTest.txt.encr", "QdCk6jOBjdUsus5Z"},
-// 		"./testdata/gopher.png": {"gopher.png.encr", "NUzwzHGFKubFxL0a"}}
+	testFilesMap := map[string][]string{"./testdata/encrTest.txt": {"encrTest.txt.encr", "AHWqkLQRBQw8MZVw"},
+		"./testdata/gopher.png": {"gopher.png.encr", "WVyHO6LmumaGC7oo"}}
 
-// 	for initPath, encrPath := range testFilesMap {
-// 		var decrypted bytes.Buffer
-// 		err := service.DecryptFileAndGet(encrPath[0], encrPath[1], &decrypted)
-// 		assert.Nil(t, err)
-// 		exp, err := ioutil.ReadFile(initPath)
-// 		assert.Nil(t, err)
-// 		//fmt.Println(len(decrypted.Bytes()), len(exp))
-// 		assert.True(t, bytes.Equal(exp, decrypted.Bytes()))
-// 	}
-// }
+	for initPath, encrPath := range testFilesMap {
+		var decrypted bytes.Buffer
+		err := service.DecryptFileAndGet(encrPath[0], encrPath[1], &decrypted)
+		assert.Nil(t, err)
+		exp, err := ioutil.ReadFile(initPath)
+		assert.Nil(t, err)
+		assert.True(t, bytes.Equal(exp, decrypted.Bytes()))
+	}
+}
 
 // func TestCrypterGetFileWrongKey(t *testing.T) {
 // 	fileRepo := infrastructure.NewInFsFileStorage("./testdata")
