@@ -32,8 +32,6 @@ func (s *InFsFileStorage) FindFileReaderByID(fid string) (io.ReadCloser, error) 
 	if os.IsNotExist(err) {
 		return nil, stacktrace.NewMessageWithCode(ErrFileNotFound, fmt.Sprintf("File with id: %s not exists", fid))
 	}
-	tst, _ := file.Stat()
-	fmt.Println(tst.Size())
 	if err != nil {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}

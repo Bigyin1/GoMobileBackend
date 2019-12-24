@@ -2,7 +2,6 @@ package crypter
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -26,7 +25,6 @@ func TestEncryptDecrypt(t *testing.T) {
 		assert.Nil(t, err)
 		err = decrypt(&encrData, &decrData, key)
 		assert.Nil(t, err)
-		fmt.Println(len(decrData.Bytes()), len(initData))
 		assert.True(t, bytes.Equal(initData, decrData.Bytes()))
 	}
 }

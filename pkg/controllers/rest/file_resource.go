@@ -17,8 +17,9 @@ type filesResource struct {
 	cryptService *crypter.Service
 }
 
-func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.InputFiles, error) {
-	files := make(crypter.InputFiles)
+func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Mapping, error) {
+	//files := make(crypter.InputFiles)
+	mapping := crypter.NewFilesMapping()
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
@@ -32,10 +33,10 @@ func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Inp
 		if name == "" {
 			name = part.FormName()
 		}
-		files[name] = part
 		log.Println(part.FileName())
+		fr.cryptService.EncryptAndSaveFile(part, name, &mapping)
 	}
-	return files, nil
+	return mapping, nil
 }
 
 func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
@@ -47,12 +48,11 @@ func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
 		return stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to get multipart reader")
 	}
 
-	files, err := fr.processMultipart(reader)
+	mapping, err := fr.processMultipart(reader)
 	if err != nil {
 		return stacktrace.Propagate(err, "processMultipart failed")
 	}
 
-	mapping := fr.cryptService.EncryptAndSaveFiles(files)
 	writeResponse(mapping, http.StatusOK, w)
 	return nil
 }

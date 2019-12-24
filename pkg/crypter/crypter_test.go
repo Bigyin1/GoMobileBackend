@@ -73,7 +73,6 @@ func TestCrypterSaveFile(t *testing.T) {
 		var decr bytes.Buffer
 		err = service.DecryptFileAndGet(storedFile.GetFid(), testKey, &decr)
 		assert.Nil(t, err)
-		fmt.Println(len(expected))
 		assert.True(t, bytes.Equal(expected, decr.Bytes()))
 	}
 }

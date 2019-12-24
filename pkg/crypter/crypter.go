@@ -32,8 +32,7 @@ func (s *Service) combineFileURL(uuid, key string) string {
 	return u.String()
 }
 
-func (s *Service) encryptAndSaveFile(fileReader io.Reader, fileName string, mapping *Mapping, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Service) EncryptAndSaveFile(fileReader io.Reader, fileName string, mapping *Mapping) {
 	key := s.keyGenerator()
 	fid := uuid.NewV4().String()
 	fileWriter, err := s.fileRepository.GetFileWriterByID(fid)
@@ -51,11 +50,14 @@ func (s *Service) encryptAndSaveFile(fileReader io.Reader, fileName string, mapp
 }
 
 func (s *Service) EncryptAndSaveFiles(files InputFiles) Mapping {
-	mapping := newFilesMapping()
-	wg := sync.WaitGroup{}
+	mapping := NewFilesMapping()
+	wg := &sync.WaitGroup{}
 	wg.Add(len(files))
 	for fileName, fileData := range files {
-		go s.encryptAndSaveFile(fileData, fileName, &mapping, &wg)
+		go func(fileData io.Reader, fileName string) {
+			s.EncryptAndSaveFile(fileData, fileName, &mapping)
+			wg.Done()
+		}(fileData, fileName)
 	}
 	wg.Wait()
 	return mapping
