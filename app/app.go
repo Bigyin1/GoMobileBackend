@@ -1,15 +1,16 @@
 package app
 
 import (
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/Bigyin1/GoMobileBackend/config"
 	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/mail"
 	"github.com/Bigyin1/GoMobileBackend/pkg/controllers/rest"
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/Bigyin1/GoMobileBackend/pkg/infrastructure"
-	"log"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type App struct {

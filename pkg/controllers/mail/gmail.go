@@ -1,16 +1,18 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"io/ioutil"
+	"log"
+	"time"
+
 	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
 	"github.com/palantir/stacktrace"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
-	"io/ioutil"
-	"log"
-	"time"
 )
 
 type GmailController struct {
@@ -55,7 +57,7 @@ func (gc *GmailController) getFilePartData(part *gmail.MessagePart, mid string) 
 
 func (gc *GmailController) processMessage(message *gmail.Message) {
 	log.Println("Start processing email message:", logMessage(message))
-	inputFiles := make(map[string][]byte)
+	inputFiles := make(crypter.InputFiles)
 	for _, part := range message.Payload.Parts {
 		if part.Filename != "" {
 			fileData, err := gc.getFilePartData(part, message.Id)
@@ -67,8 +69,9 @@ func (gc *GmailController) processMessage(message *gmail.Message) {
 				log.Printf("Got file with zero length: %s", part.Filename)
 				continue
 			}
+			dataReader := bytes.NewReader(fileData)
 			log.Println(part.Filename)
-			inputFiles[part.Filename] = fileData
+			inputFiles[part.Filename] = dataReader
 		}
 	}
 	mapping := gc.cryptService.EncryptAndSaveFiles(inputFiles)

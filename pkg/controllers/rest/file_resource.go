@@ -1,14 +1,14 @@
 package rest
 
 import (
-	"bytes"
-	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
-	"github.com/gorilla/mux"
-	"github.com/palantir/stacktrace"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/Bigyin1/GoMobileBackend/pkg/crypter"
+	"github.com/gorilla/mux"
+	"github.com/palantir/stacktrace"
 )
 
 type ResourceHandler func(w http.ResponseWriter, r *http.Request) error
@@ -17,31 +17,26 @@ type filesResource struct {
 	cryptService *crypter.Service
 }
 
-func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.InputFiles, error) {
-	files := make(map[string][]byte)
+func (fr *filesResource) processMultipart(reader *multipart.Reader) (crypter.Mapping, error) {
+	//files := make(crypter.InputFiles)
+	mapping := crypter.NewFilesMapping()
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
+			return mapping, stacktrace.PropagateWithCode(err, ErrMultipartBadFormat, "multipart bad format")
 		}
 
 		name := part.FileName()
 		if name == "" {
 			name = part.FormName()
 		}
-		var b []byte
-		buf := bytes.NewBuffer(b)
-		_, err = io.Copy(buf, part)
-		if err != nil {
-			return nil, stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to read next part")
-		}
-		files[name] = buf.Bytes()
 		log.Println(part.FileName())
+		fr.cryptService.EncryptAndSaveFile(part, name, &mapping)
 	}
-	return files, nil
+	return mapping, nil
 }
 
 func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
@@ -53,13 +48,12 @@ func (fr *filesResource) Post(w http.ResponseWriter, r *http.Request) error {
 		return stacktrace.PropagateWithCode(err, ErrMultipartProcessing, "failed to get multipart reader")
 	}
 
-	files, err := fr.processMultipart(reader)
+	mapping, err := fr.processMultipart(reader)
 	if err != nil {
 		return stacktrace.Propagate(err, "processMultipart failed")
 	}
 
-	mapping := fr.cryptService.EncryptAndSaveFiles(files)
-	writeResponse(mapping, http.StatusOK, w)
+	writeResponse(mapping.GetMapping(), http.StatusOK, w)
 	return nil
 }
 
@@ -67,10 +61,10 @@ func (fr *filesResource) Get(w http.ResponseWriter, r *http.Request) error {
 	fid := mux.Vars(r)["fid"]
 	key := r.FormValue("key")
 
-	file, err := fr.cryptService.DecryptFileAndGet(fid, key)
+	err := fr.cryptService.DecryptFileAndGet(fid, key, w)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to decrypt file %s with key %s", fid, key)
 	}
-	writeFileResponse(file, w)
+	//writeFileResponse(file, w)
 	return nil
 }

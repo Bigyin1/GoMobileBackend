@@ -2,16 +2,17 @@ package infrastructure
 
 import (
 	"fmt"
-	"github.com/palantir/stacktrace"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/palantir/stacktrace"
 )
 
 type FileRepository interface {
-	FindFileByID(fid string) ([]byte, error)
-	StoreFileByID(fid string, f []byte) error
+	FindFileReaderByID(fid string) (io.ReadCloser, error)
+	GetFileWriterByID(fid string) (io.WriteCloser, error)
 }
 
 type InFsFileStorage struct {
@@ -26,7 +27,7 @@ func NewInFsFileStorage(storagePath string) *InFsFileStorage {
 	return &InFsFileStorage{storagePath: storagePath}
 }
 
-func (s *InFsFileStorage) FindFileByID(fid string) ([]byte, error) {
+func (s *InFsFileStorage) FindFileReaderByID(fid string) (io.ReadCloser, error) {
 	file, err := os.Open(filepath.Join(s.storagePath, fid))
 	if os.IsNotExist(err) {
 		return nil, stacktrace.NewMessageWithCode(ErrFileNotFound, fmt.Sprintf("File with id: %s not exists", fid))
@@ -34,24 +35,17 @@ func (s *InFsFileStorage) FindFileByID(fid string) ([]byte, error) {
 	if err != nil {
 		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
 	}
-	defer file.Close()
-	b, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "")
-	}
-	return b, nil
+	return file, nil
 }
 
-func (s *InFsFileStorage) StoreFileByID(fid string, f []byte) error {
+func (s *InFsFileStorage) GetFileWriterByID(fid string) (io.WriteCloser, error) {
 	path := filepath.Join(s.storagePath, fid)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return stacktrace.PropagateWithCode(err, ErrUnexpected, "File with uuid already exists")
+		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "File with uuid already exists")
 	}
-	newFile, _ := os.Create(path)
-	defer newFile.Close()
-	_, err := newFile.Write(f)
+	newFile, err := os.Create(path)
 	if err != nil {
-		return stacktrace.PropagateWithCode(err, ErrUnexpected, "")
+		return nil, stacktrace.PropagateWithCode(err, ErrUnexpected, "Failed to create file")
 	}
-	return nil
+	return newFile, nil
 }
